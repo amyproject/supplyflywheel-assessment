@@ -168,3 +168,25 @@ describe("submission locking + admin view", () => {
     expect(csv).toContain(`"'=HYPERLINK(""http://evil"")"`);
   });
 });
+
+describe("delete candidate", () => {
+  beforeEach(freshDb);
+  it("admins delete a candidate with their attempt, answers, recordings and files; candidates can't", async () => {
+    const fs = await import("node:fs");
+    const { deleteCandidate } = await import("@/lib/admin");
+    const { db } = await import("@/lib/db");
+    const admin = makeAdmin();
+    const A = makeCandidateWithAttempt(admin, "a@test.dev");
+    const B = makeCandidateWithAttempt(admin, "b@test.dev");
+    saveAnswer(A.candidate, A.attempt.id, "A1", { rev: 1, typed_text: "x" });
+    const rec = saveRecording(A.candidate, A.attempt.id, "A2", { bytes: WEBM, mime: "audio/webm", duration_seconds: 2 });
+    const file = `/tmp/sfa-test-storage/${rec.storage_path}`;
+    expect(fs.existsSync(file)).toBe(true);
+    expect(() => deleteCandidate(B.candidate, A.candidate.id)).toThrow();
+    expect(() => deleteCandidate(admin, admin.id)).toThrow(/Not found/);
+    expect(deleteCandidate(admin, A.candidate.id)).toEqual({ attempts: 1, recordings: 1 });
+    expect(fs.existsSync(file)).toBe(false);
+    expect(db().prepare("SELECT COUNT(*) n FROM answers WHERE attempt_id = ?").get(A.attempt.id)).toEqual({ n: 0 });
+    expect(dashboardRows(admin).map((r) => r.email)).toEqual(["b@test.dev"]);
+  });
+});

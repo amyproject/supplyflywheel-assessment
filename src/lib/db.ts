@@ -5,6 +5,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { config } from "@/lib/config";
 import { CATEGORIES, QUESTIONS, SCENARIO } from "@/lib/questions";
+import { hashPassword, verifyPassword } from "@/lib/password";
 
 type DB = Database.Database;
 
@@ -212,6 +213,7 @@ function open(): DB {
   migrate(d);
   ensureDefaultTemplate(d);
   syncTemplateQuestions(d);
+  ensureBootstrapAdmin(d);
   return d;
 }
 
@@ -274,6 +276,50 @@ function syncTemplateQuestions(d: DB) {
     );
     for (const q of QUESTIONS) ins.run(id("q"), tid, q.code, q.category, q.order, q.prompt_zh, q.prompt_en, q.rubric_zh, q.rubric_en, CATEGORIES.find((c) => c.code === q.category)!.weight, soft, q.hard_limit_seconds);
   })();
+}
+
+/**
+ * First-run admin for deployments: if ADMIN_EMAIL + ADMIN_PASSWORD (12+ chars) are set, make sure that
+ * account exists as a super admin with that password. The env var is the source of truth for this one
+ * account, so changing ADMIN_PASSWORD on the host and restarting resets it.
+ */
+function ensureBootstrapAdmin(d: DB) {
+  const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  const password = process.env.ADMIN_PASSWORD;
+  if (!email || !password) return;
+  if (password.length < 12) {
+    console.warn("[assessment] ADMIN_PASSWORD must be at least 12 characters; bootstrap admin not created");
+    return;
+  }
+  const u = d.prepare("SELECT id, role, password_hash FROM users WHERE email = ?").get(email) as { id: string; role: string; password_hash: string | null } | undefined;
+  if (!u) {
+    d.prepare("INSERT INTO users (id, email, full_name, role, password_hash, created_at) VALUES (?, ?, ?, 'super_admin', ?, ?)").run(id("usr"), email, "SupplyFlywheel Admin", hashPassword(password), now());
+    console.info(`[assessment] created super admin ${email}`);
+    return;
+  }
+  if (u.role === "candidate") {
+    console.warn(`[assessment] ADMIN_EMAIL ${email} belongs to a candidate; not promoting it`);
+    return;
+  }
+  if (!verifyPassword(password, u.password_hash)) {
+    d.prepare("UPDATE users SET password_hash = ?, disabled_at = NULL WHERE id = ?").run(hashPassword(password), u.id);
+    d.prepare("DELETE FROM sessions WHERE user_id = ?").run(u.id);
+    console.info(`[assessment] reset password for ${email} from ADMIN_PASSWORD`);
+  }
+}
+
+/**
+ * HMAC secret for signed media URLs and resume links: SESSION_SECRET if set, otherwise a random secret
+ * generated once and stored in the database (so a deploy works without extra config).
+ */
+export function appSecret(): string {
+  const env = process.env.SESSION_SECRET;
+  if (env && env.length >= 16) return env;
+  const cur = getSetting("app_secret", "");
+  if (cur) return cur;
+  const s = crypto.randomBytes(32).toString("hex");
+  db().prepare("INSERT OR IGNORE INTO settings (key, value) VALUES ('app_secret', ?)").run(s);
+  return getSetting("app_secret", s);
 }
 
 /** Process-wide singleton (survives Next dev hot reloads). */

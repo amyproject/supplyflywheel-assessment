@@ -1,5 +1,8 @@
 import "server-only";
+import fs from "node:fs";
+import path from "node:path";
 import { db, parseJson } from "@/lib/db";
+import { config } from "@/lib/config";
 import { HttpError } from "@/lib/http";
 import { type Actor, isAdmin } from "@/lib/auth";
 import {
@@ -323,4 +326,29 @@ export function auditLog(admin: Actor, limit = 200) {
   return db()
     .prepare(`SELECT l.*, u.full_name AS admin_name FROM admin_audit_logs l JOIN users u ON u.id = l.admin_id ORDER BY l.occurred_at DESC LIMIT ?`)
     .all(limit) as { id: string; action: string; target_type: string; target_id: string | null; metadata: string; occurred_at: string; admin_name: string }[];
+}
+
+/**
+ * Permanently delete a candidate: their attempts, answers, recordings (files too), reviews, events and
+ * invitations. Audited. Admin accounts can't be deleted this way.
+ */
+export function deleteCandidate(admin: Actor, candidateId: string): { attempts: number; recordings: number } {
+  requireAdmin(admin);
+  const d = db();
+  const user = d.prepare("SELECT id, email, role FROM users WHERE id = ?").get(candidateId) as { id: string; email: string; role: string } | undefined;
+  if (!user || user.role !== "candidate") throw new HttpError(404, "not_found", "Not found");
+  const attempts = d.prepare("SELECT id FROM attempts WHERE candidate_id = ?").all(candidateId) as { id: string }[];
+  const recs = d.prepare(`SELECT storage_path FROM recordings WHERE attempt_id IN (SELECT id FROM attempts WHERE candidate_id = ?)`).all(candidateId) as { storage_path: string }[];
+  const root = path.resolve(config.storageDir);
+  for (const a of attempts) {
+    const dir = path.resolve(root, a.id);
+    if (dir.startsWith(root + path.sep)) fs.rmSync(dir, { recursive: true, force: true });
+  }
+  d.transaction(() => {
+    d.prepare("DELETE FROM attempts WHERE candidate_id = ?").run(candidateId); // cascades answers, recordings, reviews, events, requests
+    d.prepare("DELETE FROM invitations WHERE candidate_id = ? OR email = ?").run(candidateId, user.email);
+    d.prepare("DELETE FROM users WHERE id = ?").run(candidateId); // cascades sessions, login links
+  })();
+  audit(admin, "delete_candidate", "candidate", candidateId, { attempts: attempts.length, recordings: recs.length });
+  return { attempts: attempts.length, recordings: recs.length };
 }

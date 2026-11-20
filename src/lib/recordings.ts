@@ -2,7 +2,7 @@ import "server-only";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { db, id, now, rateLimit } from "@/lib/db";
+import { db, id, now, rateLimit, appSecret } from "@/lib/db";
 import { config } from "@/lib/config";
 import { HttpError } from "@/lib/http";
 import { type Actor, isAdmin } from "@/lib/auth";
@@ -121,7 +121,7 @@ export function deleteRecording(actor: Actor, recId: string) {
 
 // ---------- signed, short-lived media URLs ----------
 function mediaSig(recId: string, userId: string, exp: number, download: boolean) {
-  return crypto.createHmac("sha256", config.sessionSecret).update(`media|${recId}|${userId}|${exp}|${download ? 1 : 0}`).digest("base64url");
+  return crypto.createHmac("sha256", appSecret()).update(`media|${recId}|${userId}|${exp}|${download ? 1 : 0}`).digest("base64url");
 }
 
 /** URL bound to one recording, one user and a 5-minute window. The media route also requires that user's session. */

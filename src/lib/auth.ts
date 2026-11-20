@@ -20,21 +20,8 @@ export interface Actor {
 
 export const isAdmin = (a: Pick<Actor, "role"> | null | undefined) => a?.role === "admin" || a?.role === "super_admin";
 
-// ---------- passwords (scrypt, constant-time compare) ----------
-export function hashPassword(password: string): string {
-  const salt = crypto.randomBytes(16);
-  const hash = crypto.scryptSync(password, salt, 64, { N: 16384, r: 8, p: 1 });
-  return `scrypt$${salt.toString("base64")}$${hash.toString("base64")}`;
-}
-
-export function verifyPassword(password: string, stored: string | null): boolean {
-  if (!stored) return false;
-  const [scheme, saltB64, hashB64] = stored.split("$");
-  if (scheme !== "scrypt" || !saltB64 || !hashB64) return false;
-  const expected = Buffer.from(hashB64, "base64");
-  const actual = crypto.scryptSync(password, Buffer.from(saltB64, "base64"), expected.length, { N: 16384, r: 8, p: 1 });
-  return crypto.timingSafeEqual(expected, actual);
-}
+export { hashPassword, verifyPassword } from "@/lib/password";
+import { hashPassword, verifyPassword } from "@/lib/password";
 
 const USER_COLS = "id, email, full_name, phone, location, role, created_at";
 

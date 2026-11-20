@@ -1,6 +1,6 @@
 import "server-only";
 import crypto from "node:crypto";
-import { db, id, now, parseJson, sha256, DEFAULT_TEMPLATE_SLUG, rateLimit, getSetting } from "@/lib/db";
+import { db, id, now, parseJson, sha256, DEFAULT_TEMPLATE_SLUG, rateLimit, getSetting, appSecret } from "@/lib/db";
 import { config } from "@/lib/config";
 import { HttpError } from "@/lib/http";
 import { type Actor, createUser, findUserByEmail, isAdmin, normalizeEmail } from "@/lib/auth";
@@ -524,7 +524,7 @@ function getUserFresh(uid: string): Actor {
 
 /** Private, deterministic resume link token for an attempt (HMAC; nothing extra to store). */
 export function resumeToken(attemptId: string): string {
-  const mac = crypto.createHmac("sha256", config.sessionSecret).update(`resume|${attemptId}`).digest("base64url").slice(0, 32);
+  const mac = crypto.createHmac("sha256", appSecret()).update(`resume|${attemptId}`).digest("base64url").slice(0, 32);
   return `${attemptId}.${mac}`;
 }
 

@@ -7,6 +7,7 @@ import { candidateDetail } from "@/lib/admin";
 import { HttpError } from "@/lib/http";
 import { fmtDate, fmtHMS, tr } from "@/lib/i18n";
 import { bandLabel, statusLabel } from "@/lib/labels";
+import { DeleteCandidateButton } from "./delete-button";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,10 @@ export default async function CandidatePage({ params }: { params: Promise<{ cand
       <Header actor={admin} lang={lang} context={t("候选人详情", "Candidate")} wide />
       <main className="mx-auto max-w-[1100px] px-4 py-8 sm:px-6">
         <Link href="/admin" className="text-sm text-mute hover:underline">{t("返回候选人列表", "Back to candidates")}</Link>
-        <h1 className="mt-3 text-3xl font-semibold">{d.user.full_name}</h1>
+        <div className="mt-3 flex flex-wrap items-center gap-4">
+          <h1 className="text-3xl font-semibold">{d.user.full_name}</h1>
+          <div className="ml-auto"><DeleteCandidateButton lang={lang} id={d.user.id} name={d.user.full_name} /></div>
+        </div>
         <dl className="card mt-5 grid gap-x-6 gap-y-3 p-5 text-[0.95rem] sm:grid-cols-4">
           {[
             [t("邮箱", "Email"), d.user.email],

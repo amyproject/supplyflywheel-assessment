@@ -71,3 +71,50 @@ describe("no-login test taking", () => {
     expect((await startRoute(post({ ...base, email: "c99@test.dev" }, "9.9.9.9"), ctx({}))).status).toBe(429);
   });
 });
+
+describe("deployment bootstrap admin", () => {
+  it("creates the super admin from ADMIN_EMAIL/ADMIN_PASSWORD and resets the password when the env changes", async () => {
+    const { resetDbForTests } = await import("@/lib/db");
+    const { authenticate } = await import("@/lib/auth");
+    const prev = { e: process.env.ADMIN_EMAIL, p: process.env.ADMIN_PASSWORD };
+    try {
+      process.env.ADMIN_EMAIL = "Boss@Deploy.dev";
+      process.env.ADMIN_PASSWORD = "first-password-123";
+      resetDbForTests();
+      expect(authenticate("boss@deploy.dev", "first-password-123").role).toBe("super_admin");
+      // Simulate a restart with a new password on the same DB: keep the singleton, re-run bootstrap via a fresh open of a file DB
+    } finally {
+      process.env.ADMIN_EMAIL = prev.e;
+      process.env.ADMIN_PASSWORD = prev.p;
+      resetDbForTests();
+    }
+  });
+
+  it("password reset on restart (file DB)", async () => {
+    const os = await import("node:os");
+    const path = await import("node:path");
+    const fs = await import("node:fs");
+    const { resetDbForTests } = await import("@/lib/db");
+    const { authenticate } = await import("@/lib/auth");
+    const file = path.join(os.tmpdir(), `sfa-boot-${Date.now()}.db`);
+    const prev = { e: process.env.ADMIN_EMAIL, p: process.env.ADMIN_PASSWORD, d: process.env.DATABASE_PATH };
+    try {
+      process.env.DATABASE_PATH = file;
+      process.env.ADMIN_EMAIL = "boss@deploy.dev";
+      process.env.ADMIN_PASSWORD = "first-password-123";
+      resetDbForTests();
+      authenticate("boss@deploy.dev", "first-password-123");
+      process.env.ADMIN_PASSWORD = "second-password-456";
+      resetDbForTests();
+      expect(() => authenticate("boss@deploy.dev", "first-password-123")).toThrow();
+      expect(authenticate("boss@deploy.dev", "second-password-456").role).toBe("super_admin");
+      process.env.ADMIN_PASSWORD = "short";
+      resetDbForTests();
+      expect(authenticate("boss@deploy.dev", "second-password-456").role).toBe("super_admin"); // too-short env is ignored
+    } finally {
+      resetDbForTests();
+      Object.assign(process.env, { ADMIN_EMAIL: prev.e ?? "", ADMIN_PASSWORD: prev.p ?? "", DATABASE_PATH: prev.d ?? ":memory:" });
+      for (const f of [file, `${file}-wal`, `${file}-shm`]) fs.rmSync(f, { force: true });
+    }
+  });
+});

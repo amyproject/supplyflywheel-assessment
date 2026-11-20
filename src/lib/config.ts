@@ -1,22 +1,12 @@
 import "server-only";
 import path from "node:path";
 
-function secret(): string {
-  const s = process.env.SESSION_SECRET;
-  if (s && s.length >= 16) return s;
-  if (process.env.NODE_ENV === "production") throw new Error("SESSION_SECRET must be set (32+ random bytes) in production");
-  return "dev-only-insecure-secret-change-me";
-}
-
 export const config = {
   get databasePath() {
     return process.env.DATABASE_PATH || path.join(process.cwd(), "data", "assessment.db");
   },
   get storageDir() {
     return process.env.STORAGE_DIR || path.join(process.cwd(), "storage");
-  },
-  get sessionSecret() {
-    return secret();
   },
   get offline() {
     return process.env.ASSESS_OFFLINE === "1";

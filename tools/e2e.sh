@@ -47,3 +47,9 @@ echo "candidate URL used by admin: $(code $J/adm "$PLAY")"
 for p in /admin /admin/candidates /admin/compare /admin/assessments /admin/settings "/admin/compare?ids=$ATT,$ATT"; do echo "admin $p: $(code $J/adm $p)"; done
 curl -sS -b $J/adm "$B/api/admin/exports/csv" | head -3
 echo "$ATT" > /tmp/e2e.att
+
+# Clean up: delete the test candidates this run created.
+for em in "$EMAIL" "x$EMAIL"; do
+  CID=$(curl -sS -b $J/adm "$B/api/admin/candidates?q=$em" | python3 -c "import sys,json;r=json.load(sys.stdin)['rows'];print(r[0]['candidate_id'] if r else '')")
+  [ -n "$CID" ] && echo "cleanup $em: $(curl -sS -b $J/adm -H "Origin: $B" -X DELETE $B/api/admin/candidates/$CID)"
+done
