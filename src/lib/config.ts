@@ -20,7 +20,8 @@ export const config = {
     return process.env.OPENAI_TRANSCRIBE_MODEL || "gpt-4o-mini-transcribe";
   },
   get appBaseUrl() {
-    return (process.env.APP_BASE_URL || "http://localhost:3230").replace(/\/$/, "");
+    const railway = process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : "";
+    return (process.env.APP_BASE_URL || railway || "http://localhost:3230").replace(/\/$/, "");
   },
   get resendKey() {
     return this.offline ? "" : process.env.RESEND_API_KEY || "";

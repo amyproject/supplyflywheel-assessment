@@ -40,6 +40,19 @@ at **/admin/assessments** (publishes a new version; started tests keep theirs).
 | Template versioning + snapshot per attempt (§12.10) | `/admin/assessments`, `publishTemplateSettings` |
 | SQL migrations + RLS (§18) | `src/lib/db.ts` (SQLite, used locally) and `supabase/migrations/001_init.sql` (Postgres/RLS/Storage, **not yet applied to a live project**) |
 
+## Deploy on Railway (recommended)
+
+1. railway.com → **New Project → Deploy from GitHub repo** → `amyproject/supplyflywheel-assessment`
+   (it builds from the `Dockerfile` via `railway.json`).
+2. In the service, open the volume menu, choose **Add Volume**, and set **Mount path** to `/data`.
+3. **Variables:** add `ADMIN_EMAIL`, `ADMIN_PASSWORD` (12+ chars), and optionally `OPENAI_API_KEY`.
+4. **Settings → Networking → Generate Domain.** The app uses it automatically for the test link
+   (`RAILWAY_PUBLIC_DOMAIN`); set `APP_BASE_URL` instead if you add a custom domain.
+5. Open `https://<domain>/api/health` (should say `"ok":true`), then `https://<domain>/auth/sign-in`.
+
+Vercel is not supported as-is: its serverless disk is read-only and per-request, so the SQLite database
+and recordings can't persist (sign-in returns a storage error there).
+
 ## Deploying (and logging in as admin)
 
 The admin account is **not** in git. On the host (Railway, Render, Fly, any Docker host) set:

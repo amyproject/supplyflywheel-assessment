@@ -39,6 +39,10 @@ export function route<P = Record<string, string>>(handler: (req: NextRequest, ct
       if (e instanceof HttpError) return NextResponse.json({ error: e.code, message: e.message }, { status: e.status });
       if (e instanceof ZodError) return NextResponse.json({ error: "invalid_input", message: "输入无效 / Invalid input", issues: e.issues.slice(0, 5) }, { status: 400 });
       console.error("[api]", e);
+      const code = (e as { code?: string })?.code;
+      if (code === "EROFS" || code === "EACCES" || code === "SQLITE_CANTOPEN" || code === "SQLITE_READONLY") {
+        return NextResponse.json({ error: "storage_unavailable", message: "服务器存储不可用：请在支持持久磁盘的主机上部署（见 README）/ Server storage unavailable: deploy on a host with a persistent disk (see README)" }, { status: 503 });
+      }
       return NextResponse.json({ error: "server_error", message: "服务器错误 / Server error" }, { status: 500 });
     }
   };
