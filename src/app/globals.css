@@ -1,0 +1,220 @@
+/* Hallmark (floor only) · app screens · genre: utilitarian-editorial · palette: warm paper, graphite ink, one flywheel-blue signal · type: Geist + PingFang SC */
+/* critique: a timed, high-stakes interview; the screen should feel like a calm exam paper, with time and save state always legible and nothing decorative. */
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-geist-sans), "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-paper: #f6f5f1;
+  --color-sheet: #fffefb;
+  --color-rule: #e3e0d8;
+  --color-rule-strong: #cbc7bc;
+  --color-ink: #17191e;
+  --color-ink-2: #3b3f48;
+  --color-mute: #6b6f78;
+  --color-faint: #9a9da4;
+
+  --color-signal: #1d4ed8;
+  --color-signal-strong: #173ea8;
+  --color-signal-wash: #e8eefc;
+
+  --color-good: #17714b;
+  --color-good-wash: #e5f3ec;
+  --color-watch: #9a5b00;
+  --color-watch-wash: #fbf0dc;
+  --color-risk: #b42318;
+  --color-risk-wash: #fbe9e7;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+}
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  overflow-x: clip;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  overflow-wrap: break-word;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+}
+
+/* Assessment question blocks: selection discouraged (best effort, see integrity notice). */
+.protected {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.field {
+  width: 100%;
+  border: 1px solid var(--color-rule-strong);
+  background: var(--color-sheet);
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.75rem;
+  color: var(--color-ink);
+}
+.field:hover {
+  border-color: var(--color-faint);
+}
+.field:focus {
+  border-color: var(--color-signal);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-signal-wash);
+}
+.field:disabled {
+  background: var(--color-paper);
+  color: var(--color-mute);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 1rem;
+  font-weight: 550;
+  font-size: 0.95rem;
+  line-height: 1.2;
+  border: 1px solid transparent;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-primary {
+  background: var(--color-signal);
+  color: var(--color-sheet);
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-signal-strong);
+}
+.btn-primary:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.btn-quiet {
+  background: var(--color-sheet);
+  color: var(--color-ink);
+  border-color: var(--color-rule-strong);
+}
+.btn-quiet:hover:not(:disabled) {
+  border-color: var(--color-ink-2);
+}
+.btn-danger {
+  background: var(--color-sheet);
+  color: var(--color-risk);
+  border-color: var(--color-rule-strong);
+}
+.btn-danger:hover:not(:disabled) {
+  border-color: var(--color-risk);
+}
+.btn-sm {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.85rem;
+}
+
+.card {
+  background: var(--color-sheet);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-lg);
+}
+
+.label {
+  font-size: 0.85rem;
+  color: var(--color-mute);
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.1rem 0.6rem;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  border: 1px solid var(--color-rule);
+  background: var(--color-paper);
+  color: var(--color-ink-2);
+}
+.tag-good { background: var(--color-good-wash); color: var(--color-good); border-color: transparent; }
+.tag-watch { background: var(--color-watch-wash); color: var(--color-watch); border-color: transparent; }
+.tag-risk { background: var(--color-risk-wash); color: var(--color-risk); border-color: transparent; }
+.tag-signal { background: var(--color-signal-wash); color: var(--color-signal-strong); border-color: transparent; }
+
+.rec-pulse {
+  animation: rec-pulse 1.2s ease-in-out infinite;
+}
+@keyframes rec-pulse {
+  50% { opacity: 0.35; }
+}
+
+.toast-in {
+  animation: toast-in 160ms ease-out;
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(6px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rec-pulse,
+  .toast-in {
+    animation: none;
+  }
+  .btn {
+    transition: none;
+  }
+}
+
+table.data {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.93rem;
+}
+table.data th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--color-mute);
+  font-size: 0.85rem;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--color-rule-strong);
+  white-space: nowrap;
+}
+table.data td {
+  padding: 0.7rem 0.75rem;
+  border-bottom: 1px solid var(--color-rule);
+  vertical-align: middle;
+}
+table.data tbody tr:hover {
+  background: var(--color-paper);
+}
